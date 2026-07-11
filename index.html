@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Expense &amp; Budget Visualizer</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+
+    <!-- Storage warning banner (hidden by default) -->
+    <div id="storage-warning" class="storage-warning hidden" role="alert">
+      ⚠️ Local Storage is unavailable. Data will not be saved this session.
+    </div>
+
+    <div class="app-wrapper">
+
+      <!-- HEADER -->
+      <header class="app-header">
+        <h1>Expense &amp; Budget Visualizer</h1>
+        <div class="header-actions">
+          <button id="btn-theme-toggle" class="btn btn-icon-round" type="button" title="Toggle dark/light mode" aria-label="Toggle dark/light mode">
+            🌙
+          </button>
+          <button id="btn-export" class="btn btn-secondary" type="button" title="Export data as JSON backup">
+            ⬇️ Export
+          </button>
+          <label id="btn-import-label" class="btn btn-secondary" title="Import data from JSON backup">
+            ⬆️ Import
+            <input type="file" id="input-import-file" accept=".json" style="display:none" />
+          </label>
+          <button id="btn-clear-all" class="btn btn-danger" type="button">
+            Clear All Data
+          </button>
+        </div>
+      </header>
+
+      <!-- BALANCE CARD -->
+      <section class="balance-card" aria-label="Current Balance">
+        <p class="balance-label">Current Balance</p>
+        <p id="balance-display" class="balance-amount neutral">Rp 0</p>
+      </section>
+
+      <!-- ADD TRANSACTION FORM -->
+      <section class="card form-section" aria-label="Add Transaction">
+        <h2>Add Transaction</h2>
+        <form id="transaction-form" novalidate>
+
+          <div class="form-row">
+            <label for="input-amount">Amount <span class="required">*</span></label>
+            <input
+              type="number"
+              id="input-amount"
+              name="amount"
+              min="0.01"
+              step="0.01"
+              placeholder="0"
+              autocomplete="off"
+            />
+            <span class="field-error" id="error-amount"></span>
+          </div>
+
+          <div class="form-row">
+            <label for="input-type">Type <span class="required">*</span></label>
+            <select id="input-type" name="type">
+              <option value="">-- Select type --</option>
+              <option value="income">Income</option>
+              <option value="expense">Expense</option>
+            </select>
+            <span class="field-error" id="error-type"></span>
+          </div>
+
+          <div class="form-row">
+            <div class="category-label-row">
+              <label for="input-category">Category <span class="required">*</span></label>
+              <button id="btn-manage-categories" class="btn-link" type="button">🏷️ Manage</button>
+            </div>
+            <select id="input-category" name="category">
+              <!-- options populated by JS -->
+            </select>
+            <div id="new-category-row" class="new-category-row hidden">
+              <input
+                type="text"
+                id="input-new-category"
+                placeholder="Enter category name…"
+                maxlength="32"
+                autocomplete="off"
+              />
+              <button type="button" id="btn-save-category" class="btn btn-primary">Add</button>
+              <button type="button" id="btn-cancel-category" class="btn btn-secondary">Cancel</button>
+            </div>
+            <span class="field-error" id="error-category"></span>
+          </div>
+
+          <div class="form-row">
+            <label for="input-description">
+              Description <span class="optional">(optional)</span>
+            </label>
+            <input
+              type="text"
+              id="input-description"
+              name="description"
+              placeholder="e.g. Lunch at warung"
+              autocomplete="off"
+            />
+          </div>
+
+          <div class="form-row">
+            <label for="input-date">Date <span class="required">*</span></label>
+            <input type="date" id="input-date" name="date" />
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-full">
+            Add Transaction
+          </button>
+        </form>
+      </section>
+
+      <!-- FILTER BAR -->
+      <section class="card filter-section" aria-label="Filter Transactions">
+        <h2>Filter</h2>
+        <div class="filter-grid">
+          <div class="form-row">
+            <label for="filter-category">Category</label>
+            <select id="filter-category">
+              <!-- options populated by JS -->
+            </select>
+          </div>
+          <div class="form-row">
+            <label for="filter-date-from">From</label>
+            <input type="date" id="filter-date-from" />
+          </div>
+          <div class="form-row">
+            <label for="filter-date-to">To</label>
+            <input type="date" id="filter-date-to" />
+          </div>
+        </div>
+        <button id="btn-clear-filters" class="btn btn-secondary" type="button">
+          Clear Filters
+        </button>
+      </section>
+
+      <!-- MONTHLY SUMMARY -->
+      <section class="card summary-section" aria-label="Monthly Summary">
+        <div class="summary-header">
+          <h2>Monthly Summary</h2>
+          <div class="month-nav">
+            <button id="btn-month-prev" class="btn btn-icon-round" type="button" aria-label="Previous month">‹</button>
+            <span id="month-label" class="month-label"></span>
+            <button id="btn-month-next" class="btn btn-icon-round" type="button" aria-label="Next month">›</button>
+          </div>
+        </div>
+        <div class="summary-grid">
+          <div class="summary-card income">
+            <span class="summary-card-label">Income</span>
+            <span id="summary-income" class="summary-card-value">Rp 0</span>
+          </div>
+          <div class="summary-card expense">
+            <span class="summary-card-label">Expenses</span>
+            <span id="summary-expense" class="summary-card-value">Rp 0</span>
+          </div>
+          <div class="summary-card net">
+            <span class="summary-card-label">Net</span>
+            <span id="summary-net" class="summary-card-value">Rp 0</span>
+          </div>
+        </div>
+        <p id="summary-empty" class="empty-state hidden">No transactions this month.</p>
+        <div id="summary-bar-container" class="summary-bar-container">
+          <div class="summary-bar-wrap">
+            <span class="summary-bar-label">Income</span>
+            <div class="summary-bar-track">
+              <div id="bar-income" class="summary-bar bar-income" style="width:0%"></div>
+            </div>
+          </div>
+          <div class="summary-bar-wrap">
+            <span class="summary-bar-label">Expenses</span>
+            <div class="summary-bar-track">
+              <div id="bar-expense" class="summary-bar bar-expense" style="width:0%"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SPENDING CHART -->
+      <section class="card chart-section" aria-label="Spending by Category">
+        <h2>Spending by Category:</h2>
+        <div id="chart-container" class="chart-container">
+          <canvas
+            id="expense-chart"
+            width="300"
+            height="300"
+            aria-label="Expense pie chart"
+          ></canvas>
+          <div id="chart-legend" class="chart-legend"></div>
+        </div>
+        <p id="chart-empty" class="empty-state hidden">No expense data to display.</p>
+        <div id="chart-tooltip" class="chart-tooltip hidden" aria-live="polite"></div>
+      </section>
+
+      <!-- TRANSACTION HISTORY -->
+      <section class="card list-section" aria-label="Transaction History">
+        <h2>Transaction History:</h2>
+        <ul id="transaction-list" class="transaction-list" aria-live="polite"></ul>
+        <p id="list-empty" class="empty-state">
+          No transactions yet. Add one to get started.
+        </p>
+        <button
+          id="btn-load-more"
+          class="btn btn-secondary btn-full hidden"
+          type="button"
+        >
+          Load more
+        </button>
+      </section>
+
+    </div><!-- /.app-wrapper -->
+
+    <!-- MANAGE CATEGORIES MODAL -->
+    <div id="cat-modal-overlay" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="cat-modal-title">
+      <div class="modal-box modal-box-wide">
+        <div class="modal-header">
+          <h3 id="cat-modal-title">Manage Custom Categories</h3>
+          <button id="btn-close-cat-modal" class="btn btn-icon" type="button" aria-label="Close">✕</button>
+        </div>
+        <p class="modal-subtitle">You can only delete categories you created. Built-in categories cannot be removed.</p>
+        <ul id="cat-modal-list" class="cat-modal-list" aria-live="polite"></ul>
+        <p id="cat-modal-empty" class="empty-state hidden">No custom categories yet. Add one from the form above.</p>
+      </div>
+    </div>
+
+    <!-- CONFIRMATION MODAL -->
+    <div id="modal-overlay" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-message">
+      <div class="modal-box">
+        <p id="modal-message" class="modal-message"></p>
+        <div class="modal-actions">
+          <button id="modal-cancel" class="btn btn-secondary" type="button">Cancel</button>
+          <button id="modal-confirm" class="btn btn-danger" type="button">Confirm</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="js/app.js"></script>
+  </body>
+</html> 
